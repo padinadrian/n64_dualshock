@@ -1,0 +1,6 @@
+{
+    "sketch": "n64_dualshock.ino",
+    "port": "COM3",
+    "board": "arduino:avr:uno",
+    "output": "../build"
+}
