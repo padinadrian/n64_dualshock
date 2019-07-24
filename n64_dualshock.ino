@@ -10,28 +10,6 @@
 #include "embedded_tools/n64/adrian_single_wire_arduino.hpp"
 
 /*
-void Transfer(uint8_t* tx_buffer, uint8_t num_bytes)
-{
-    for (uint8_t idx = 0; idx < num_bytes; idx++)
-    {
-        uint8_t byte = tx_buffer[idx];
-        for (uint8_t bit = 0; bit < 8; bit++)
-        {
-            // Pull low for 1us to indicate new bit.
-            pin.digitalWrite(LOW);
-            MicroSleep(1);
-            // Pull low or high depending on bit state.
-            pin.digitalWrite((byte && (1 << bit)) > 0);
-            MicroSleep(2);
-            // Pull high for 1us to indicate end of bit.
-            pin.digitalWrite(HIGH);
-            MicroSleep(1);
-        }
-    }
-}
-*/
-
-/*
     N64 Console Commands
 
     0x00 --> Identify
@@ -97,18 +75,156 @@ void TranslateButtons(
 }
 */
 
+const uint8_t ZERO_ZERO = 0x88; // 0001 0001
+const uint8_t ZERO_ONE  = 0xE8; // 0001 0111
+const uint8_t ONE_ZERO  = 0x8E; // 0111 0001
+const uint8_t ONE_ONE   = 0xEE; // 0111 0111
+const uint8_t STOP_BIT  = 0xFC; // 0011 1111
+
 void setup()
 {
-    pinMode(LED_BUILTIN, OUTPUT);
     Serial.begin(1000000);
+    Serial.setTimeout(10); // Set timeout to 10 milliseconds.
+    pinMode(LED_BUILTIN, OUTPUT);
+    pinMode(3, OUTPUT);
+}
+
+void wait_microsecond()
+{
+    volatile int counter = 0;
+}
+
+const uint8_t tx_buffer[] = {
+    ZERO_ZERO, ZERO_ZERO, ZERO_ZERO, ZERO_ZERO,
+    STOP_BIT
+};
+
+uint8_t rx_buffer[64];
+uint8_t index = 0;
+
+void handler()
+{
+    rx_buffer[index++] = PIND;
 }
 
 void loop()
 {
-    digitalWrite(LED_BUILTIN, HIGH);
-    Serial.write("hello");
-    delay(1000);
-    digitalWrite(LED_BUILTIN, LOW);
-    Serial.write("goodbyte");
-    delay(1000);
+    pinMode(2, OUTPUT);
+
+    index = 0;
+    volatile int i = 0;
+
+    // 0
+    PORTD &= 0xFB;
+    i++; i++; i++; i++; i++;
+    PORTD |= 0x04;
+    i++;
+
+    // 1
+    PORTD &= 0xFB;
+    i++; i++; i++; i++; i++;
+    PORTD |= 0x04;
+    i++;
+
+    // 2
+    PORTD &= 0xFB;
+    i++; i++; i++; i++; i++;
+    PORTD |= 0x04;
+    i++;
+
+    // 3
+    PORTD &= 0xFB;
+    i++; i++; i++; i++; i++;
+    PORTD |= 0x04;
+    i++;
+
+    // 4
+    PORTD &= 0xFB;
+    i++; i++; i++; i++; i++;
+    PORTD |= 0x04;
+    i++;
+
+    // 5
+    PORTD &= 0xFB;
+    i++; i++; i++; i++; i++;
+    PORTD |= 0x04;
+    i++;
+
+    // 6
+    PORTD &= 0xFB;
+    i++; i++; i++; i++; i++;
+    PORTD |= 0x04;
+    i++;
+
+    // 7
+    PORTD &= 0xFB;
+    i++; i++; i++; i++; i++;
+    PORTD |= 0x04;
+    i++;
+
+    // Stop bit
+    PORTD &= 0xFB;
+    i++; i++; i++; i++; i++;
+    PORTD |= 0x04;
+    i++;
+
+    pinMode(2, INPUT_PULLUP);
+
+    // Collect data through
+    delay(1);
+
+
+    // Serial.write(tx_buffer, sizeof(tx_buffer));
+    // pinMode(1, INPUT_PULLUP);
+    // Serial.readBytes(rx_buffer, sizeof(rx_buffer));
+
+    // if (rx_buffer[4] == ONE_ONE)
+    // {
+    //     digitalWrite(LED_BUILTIN, HIGH);
+    // }
+    // else
+    // {
+    //     digitalWrite(LED_BUILTIN, LOW);
+    // }
+
+
+    delay(20);
+
+    // digitalWrite(3, LOW);
+    // wait_microsecond();
+    // wait_microsecond();
+    // wait_microsecond();
+    // digitalWrite(3, HIGH);
+    // wait_microsecond();
+
+    // digitalWrite(3, LOW);
+    // wait_microsecond();
+    // wait_microsecond();
+    // wait_microsecond();
+    // digitalWrite(3, HIGH);
+    // wait_microsecond();
+
+    // digitalWrite(3, LOW);
+    // wait_microsecond();
+    // wait_microsecond();
+    // wait_microsecond();
+    // digitalWrite(3, HIGH);
+    // wait_microsecond();
+
+    // digitalWrite(3, LOW);
+    // wait_microsecond();
+    // wait_microsecond();
+    // wait_microsecond();
+    // digitalWrite(3, HIGH);
+    // wait_microsecond();
+
+    // // Stop bit
+    // digitalWrite(3, LOW);
+    // wait_microsecond();
+    // wait_microsecond();
+    // digitalWrite(3, HIGH);
+    // wait_microsecond();
+    // wait_microsecond();
+
+    // delay(100);
 }
