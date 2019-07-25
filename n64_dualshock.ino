@@ -99,7 +99,7 @@ const uint8_t tx_buffer[] = {
     STOP_BIT
 };
 
-uint8_t rx_buffer[64];
+uint32_t button_status;
 uint8_t index = 0;
 
 void handler()
