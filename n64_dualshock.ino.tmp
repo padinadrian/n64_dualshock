@@ -1,0 +1,68 @@
+/**
+ * File:    n64_dualshock.ino
+ * Author:  padin.adrian@gmail.com
+ *
+ * Copyright 2019
+ */
+
+/* ===== Includes ====== */
+#include <Arduino.h>
+#include "embedded_tools/n64/adrian_single_wire_arduino.hpp"
+#include "embedded_tools/n64/adrian_n64_controller.hpp"
+#include "embedded_tools/adrian_helpers.hpp"
+#include "embedded_tools/ps2/adrian_dualshock.hpp"
+
+using adrian::zero_bit;
+using adrian::one_bit;
+using adrian::stop_bit;
+using adrian::N64Controller;
+using adrian::DualShock;
+
+/* ===== Global Variables ===== */
+ArduinoSingleWire sw;
+N64Controller controller(&sw);
+ButtonState n64_buttons = {};
+
+/* ===== Setup ===== */
+
+void setup()
+{
+    Serial.begin(115200);
+    controller.Initialize();
+    pinMode(LED_BUILTIN, OUTPUT);
+}
+
+/* ===== Loop =====  */
+
+int loop_counter = 0;
+void loop()
+{
+    controller.RequestButtonData(n64_buttons);
+
+    // Print results
+    Serial.print(loop_counter++);
+    Serial.print(": ");
+    if (buttons.a)       Serial.print("A, ");
+    if (buttons.b)       Serial.print("B, ");
+    if (buttons.z)       Serial.print("Z, ");
+    if (buttons.start)   Serial.print("S, ");
+    if (buttons.d_up)    Serial.print("DU, ");
+    if (buttons.d_down)  Serial.print("DD, ");
+    if (buttons.d_left)  Serial.print("DL, ");
+    if (buttons.d_right) Serial.print("DR, ");
+    if (buttons.l)       Serial.print("L, ");
+    if (buttons.r)       Serial.print("R, ");
+    if (buttons.c_up)    Serial.print("CU, ");
+    if (buttons.c_down)  Serial.print("CD, ");
+    if (buttons.c_left)  Serial.print("CL, ");
+    if (buttons.c_right) Serial.print("CR, ");
+    Serial.println();
+
+    Serial.print("X: ");
+    Serial.println(buttons.joy_x, DEC);
+    Serial.print("Y: ");
+    Serial.println(buttons.joy_y, DEC);
+
+    // End of loop
+    delay(100);
+}

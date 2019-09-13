@@ -1,5 +1,5 @@
 {
-    "sketch": "n64_dualshock.ino",
+    "sketch": "n64_read_buttons_demo.ino",
     "port": "COM3",
     "board": "arduino:avr:uno",
     "output": "../build"

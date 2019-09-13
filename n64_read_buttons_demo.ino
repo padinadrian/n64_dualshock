@@ -63,6 +63,8 @@ void loop()
     PORTD &= 0xF7;
 
     // Configure the pins for input
+    // 0 for input
+    // 1 for output
     //   DDRC = DDRC & Mask;
 
     //   // Enable the pullups
@@ -75,8 +77,10 @@ void loop()
     i = 1; i = 2; i = 3; i = 4;
     i = 1; i = 2; i = 3; i = 4;
     i = 1; i = 2; i = 3; i = 4;
+    for (uint8_t timeout = 0; timeout < 100 && (PIND & 4); timeout++);
     i = 1; i = 2; i = 3; i = 4;
     i = 1; i = 2; i = 3; i = 4;
+
     for (; mask > 0; mask <<= 1)
     {
         PORTD |= 0x08;

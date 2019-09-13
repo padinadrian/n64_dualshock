@@ -1,0 +1,115 @@
+
+void setup() {
+  // put your setup code here, to run once:
+  pinMode(0, INPUT);
+  pinMode(1, OUTPUT);
+}
+
+static uint8_t byte1 = 0;
+static uint8_t button_data[4] = {0};
+volatile uint8_t i = 0;
+
+template <uint8_t mask>
+void ReadBit()
+{
+  // Spin while pin 1 is high
+  PORTB |= 0b00000010;
+  while (PINB & 0b00000001);
+
+  i = 1; i = 2;
+
+  // Read bit from pin 0
+  PORTB &= 0b11111101;
+  byte1 |= (PINB & 0b00000001) ? mask : 0x0;
+  PORTB |= 0b00000010;
+
+  // Spin while pin 1 is low
+  while (!(PINB & 0b00000001));
+}
+
+template <uint32_t mask, uint8_t byte_number>
+void WriteBit()
+{
+  PORTB &= 0b11111110;
+  if (button_data[byte_number] & mask)
+  {
+    PORTB |= 0x1;
+  }
+  else
+  {
+    PORTB |= 0x0;
+  }
+  // Timing stuff...
+  i = 1; i = 2; i = 3; i = 4;
+  i = 1; i = 2; i = 3; i = 4;
+  i = 1;
+  PORTB |= 0b00000001;
+  i = 1; i = 2;
+}
+
+void loop() {
+  pinMode(0, INPUT);
+  noInterrupts();
+
+  byte1 = 0;
+  ReadBit<0x01>();
+  ReadBit<0x02>();
+  ReadBit<0x04>();
+  ReadBit<0x08>();
+  ReadBit<0x10>();
+  ReadBit<0x20>();
+  ReadBit<0x40>();
+  ReadBit<0x80>();
+
+  button_data[0] = 0x05;
+  button_data[1] = 0x00;
+  button_data[2] = 0x01;  // 0x80 when flipped
+  button_data[3] = 0x00;
+  PORTB |= 0x1;
+  DDRB |= 0x1;
+
+  // write result
+  for (volatile int i = 0; i < 5; i++);
+
+  // byte 0
+  WriteBit<0x01, 0>();
+  WriteBit<0x02, 0>();
+  WriteBit<0x04, 0>();
+  WriteBit<0x08, 0>();
+  WriteBit<0x10, 0>();
+  WriteBit<0x20, 0>();
+  WriteBit<0x40, 0>();
+  WriteBit<0x80, 0>();
+
+  // byte 1
+  WriteBit<0x01, 1>();
+  WriteBit<0x02, 1>();
+  WriteBit<0x04, 1>();
+  WriteBit<0x08, 1>();
+  WriteBit<0x10, 1>();
+  WriteBit<0x20, 1>();
+  WriteBit<0x40, 1>();
+  WriteBit<0x80, 1>();
+
+  // byte 2
+  WriteBit<0x01, 2>();
+  WriteBit<0x02, 2>();
+  WriteBit<0x04, 2>();
+  WriteBit<0x08, 2>();
+  WriteBit<0x10, 2>();
+  WriteBit<0x20, 2>();
+  WriteBit<0x40, 2>();
+  WriteBit<0x80, 2>();
+
+  // byte 3
+  WriteBit<0x01, 3>();
+  WriteBit<0x02, 3>();
+  WriteBit<0x04, 3>();
+  WriteBit<0x08, 3>();
+  WriteBit<0x10, 3>();
+  WriteBit<0x20, 3>();
+  WriteBit<0x40, 3>();
+  WriteBit<0x80, 3>();
+
+  interrupts();
+}
