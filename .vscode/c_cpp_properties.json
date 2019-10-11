@@ -3,7 +3,9 @@
         {
             "name": "Win32",
             "includePath": [
+                "C:\\Users\\apadi\\AppData\\Local\\Arduino15\\packages\\adafruit\\hardware\\avr\\1.4.13\\**",
                 "C:\\Program Files (x86)\\Arduino\\hardware\\arduino\\avr\\**",
+                "C:\\Users\\apadi\\Documents\\projects\\n64_dualshock\\**",
                 "C:\\Program Files (x86)\\Arduino\\tools\\**"
             ],
             "forcedInclude": [

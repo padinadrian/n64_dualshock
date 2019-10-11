@@ -7,9 +7,9 @@
 
 /* ===== Includes ====== */
 #include <Arduino.h>
-#include "embedded_tools/n64/adrian_single_wire_arduino.hpp"
-#include "embedded_tools/n64/adrian_n64_controller.hpp"
-#include "embedded_tools/adrian_helpers.hpp"
+#include "C:\\Users\\apadi\\Documents\\projects\\n64_dualshock/embedded_tools/n64/adrian_single_wire_arduino.hpp"
+#include "C:\\Users\\apadi\\Documents\\projects\\n64_dualshock/embedded_tools/n64/adrian_n64_controller.hpp"
+#include "C:\\Users\\apadi\\Documents\\projects\\n64_dualshock/embedded_tools/adrian_helpers.hpp"
 
 using adrian::zero_bit;
 using adrian::one_bit;
@@ -33,7 +33,7 @@ static unsigned char reverse_lookup[16] = {
 
 uint8_t reverse(uint8_t n) {
    // Reverse the top and bottom nibble then swap them.
-   return (reverse_lookup[n&0b1111] << 4) | reverse_lookup[n>>4];
+   return (reverse_lookup[n & 0b1111] << 4) | reverse_lookup[n>>4];
 }
 
 

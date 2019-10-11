@@ -2,7 +2,6 @@
 
 # Run in temporary subshell
 (
-    cd build;
-    make embedded_tools_tests;
-    bin/embedded_tools_tests
+    cd build &&
+    make run_embedded_tools_tests
 )
