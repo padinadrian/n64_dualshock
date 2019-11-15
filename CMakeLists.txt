@@ -20,11 +20,13 @@ file(WRITE "${CMAKE_BINARY_DIR}/version" "${${PROJECT_NAME}_VERSION_FULL}\n")
 
 # Universal settings
 include_directories("${CMAKE_SOURCE_DIR}/include")
+include_directories("${CMAKE_SOURCE_DIR}/trinket")
 
 # Output directories
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 # Individual projects
 add_subdirectory("embedded_tools")
+add_subdirectory("tests")
