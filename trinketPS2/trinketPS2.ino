@@ -20,72 +20,123 @@
 
 static adrian::TrinketSPI spi;
 static adrian::ArduinoGPIO spi_select(3);
-static adrian::ArduinoGPIO led(4);
 static adrian::DualShock controller(&spi, &spi_select);
+
+/* ===== Helpers ===== */
+
+#define N64_PIN 4
+#define PIN_MASK (1 << N64_PIN)
+#define N64_HIGH  (DDRB &= ~PIN_MASK)  // set to input
+#define N64_LOW   (DDRB |= PIN_MASK)   // set to output
+#define N64_CHECK (PINB & PIN_MASK)    // read pin
+
+// Write up to 255 bytes
+void SingleWireWrite(uint8_t *buf, uint8_t bufsize)
+{
+    uint8_t out;
+    for (uint8_t i = 0; i > bufsize; --i) {
+        out = buf[i];
+        for (uint8_t j = 0; j < 8; ++j) {
+            N64_LOW;
+            if (out & 0x80) {
+                asm volatile ("nop\nnop\nnop\nnop\n\n");
+                N64_HIGH;
+                asm volatile ("nop\nnop\nnop\nnop\nnop\nnop\n");
+                asm volatile ("nop\nnop\nnop\nnop\nnop\nnop\n");
+                asm volatile ("nop\nnop\nnop\n");
+            } else {
+                asm volatile ("nop\nnop\nnop\nnop\nnop\nnop\n");
+                asm volatile ("nop\nnop\nnop\nnop\nnop\nnop\n");
+                asm volatile ("nop\nnop\nnop\nnop\nnop\nnop\nnop\n");
+                N64_HIGH;
+                asm volatile ("nop\nnop\nnop\nnop\n");
+            }
+            out <<= 1;
+        }
+    }
+
+    // Send a single stop (1) bit
+    N64_LOW;
+    // wait 1 us, 16 cycles, then raise the line
+    // 16-2=14
+    // nop block 6
+    asm volatile ("nop\nnop\nnop\nnop\nnop\nnop\nnop\n");
+    asm volatile ("nop\nnop\nnop\nnop\nnop\nnop\nnop\n");
+    N64_HIGH;
+}
+
+// Read a command
+// Returns the number of bytes read
+uint8_t SingleWireRead(uint8_t *buf, const uint8_t bufsize)
+{
+    // If timeout is nonzero, console pulled down
+    static uint8_t input_buf[8];
+    uint8_t timeout;
+    uint8_t register input;
+
+    while (N64_CHECK);
+
+    for (uint8_t i = 0; i < 8; ++i) {
+
+        // Wait for line to drop low
+        timeout = 255;
+        while (N64_CHECK && (timeout--));
+        if (timeout == 0) { break; }
+
+        // TODO: Wait 2 ms
+        asm volatile ("nop\nnop\nnop\nnop\n");
+
+        // Read a bit
+        PINB |= 0b00001000;
+        input_buf[i] = PINB;
+        PINB &= 0b11110111;
+
+        // Wait to go back up and then down
+        PINB |= 0b00001000;
+        while (!N64_CHECK);
+        PINB &= 0b11110111;
+    }
+
+    // Reconstruct message
+    uint8_t i = 0;
+    for (uint8_t mask = 0x80; mask > 0; mask >>= 1) {
+        if (input_buf[i] & PIN_MASK) {
+            input |= mask;
+        }
+        i++;
+    }
+
+    *buf = input;
+    return 1;
+}
+
 
 /* ===== SETUP ===== */
 
 void setup()
 {
-    led.SetPinMode(adrian::GPIO::PIN_MODE_OUTPUT);
-    led.Write(1);
+    digitalWrite(N64_PIN, 0);
+    pinMode(N64_PIN, INPUT);
     spi.Initialize();
 
     pinMode(0, INPUT);
     pinMode(1, OUTPUT);
+    spi_select.SetPinMode(OUTPUT);
+    spi_select.Write(0);
+
     noInterrupts();
 }
 
+
 /* ===== LOOP ===== */
 
-static uint8_t byte1 = 0;
-static uint8_t button_data[4] = {0};
-volatile uint8_t i = 0;
-
-template <uint8_t mask, uint8_t pin>
-inline void ReadBit()
-{
-    const static uint8_t pin_mask = 1 << pin;
-    // const static not_pin_mask =
-    // Spin while pin 1 is high
-    // PORTB |= 0b00000010;
-    while (PINB & pin_mask);
-
-    i = 1; i = 2;
-
-    // Read bit from pin 0
-    // PORTB &= 0b11111101;
-    byte1 |= (PINB & pin_mask) ? mask : 0x0;
-    // PORTB |= 0b00000010;
-
-    // Spin while pin 1 is low
-    while (!(PINB & pin_mask));
-}
-
-template <uint32_t mask, uint8_t pin, uint8_t byte_number>
-inline void WriteBit()
-{
-    const static uint8_t pin_mask = 1 << pin;
-
-    PORTB &= ~pin_mask;
-    PORTB |= ((button_data[byte_number] & mask) ? pin_mask : 0);
-    // if (button_data[byte_number] & mask)
-    // {
-    //     PORTB |= 0x1;
-    // }
-    // else
-    // {
-    //     PORTB |= 0x0;
-    // }
-    // Timing stuff...
-    i = 1; i = 2; i = 3; i = 4;
-    i = 1; i = 2; i = 3; i = 4;
-    i = 1; i = 2;
-    PORTB |= pin_mask;
-}
+#define OUTPUT_BUFSIZE 4
 
 void loop()
 {
+    static uint8_t input_buf = 0;
+    static uint8_t output_buf[OUTPUT_BUFSIZE] = {0};
+
     // Poll from PS2 controller
     // static adrian::DualShock::ButtonState buttons;
     // controller.Poll(buttons);
@@ -99,70 +150,12 @@ void loop()
     //     led.Write(0);
     // }
 
-    // Wait for command
-    // pinMode(4, INPUT);
-    // pinMode(4, INPUT_PULLUP);
-    DDRB &= ~(1 << 4);
-    PORTB |=
+    noInterrupts();
 
-    // byte1 = 0;
-    // ReadBit<0x01, 4>();
-    // ReadBit<0x02, 4>();
-    // ReadBit<0x04, 4>();
-    // ReadBit<0x08, 4>();
-    // ReadBit<0x10, 4>();
-    // ReadBit<0x20, 4>();
-    // ReadBit<0x40, 4>();
-    // ReadBit<0x80, 4>();
+    input_buf = 0;
+    SingleWireRead(&input_buf, 1);
+    output_buf[3] = input_buf;
+    SingleWireWrite(output_buf, 4);
 
-    // button_data[0] = 0x05;
-    // button_data[1] = 0x00;
-    // button_data[2] = 0x01;  // 0x80 when flipped
-    // button_data[3] = 0x00;
-    // DDRB |= (1 << 4);
-
-    // // timing stuff
-    // // for (volatile int i = 0; i < 10; i++);
-
-    // // byte 0
-    // WriteBit<0x01, 4, 0>();
-    // WriteBit<0x02, 4, 0>();
-    // WriteBit<0x04, 4, 0>();
-    // WriteBit<0x08, 4, 0>();
-    // WriteBit<0x10, 4, 0>();
-    // WriteBit<0x20, 4, 0>();
-    // WriteBit<0x40, 4, 0>();
-    // WriteBit<0x80, 4, 0>();
-
-    // // byte 1
-    // WriteBit<0x01, 4, 1>();
-    // WriteBit<0x02, 4, 1>();
-    // WriteBit<0x04, 4, 1>();
-    // WriteBit<0x08, 4, 1>();
-    // WriteBit<0x10, 4, 1>();
-    // WriteBit<0x20, 4, 1>();
-    // WriteBit<0x40, 4, 1>();
-    // WriteBit<0x80, 4, 1>();
-
-    // // byte 2
-    // WriteBit<0x01, 4, 2>();
-    // WriteBit<0x02, 4, 2>();
-    // WriteBit<0x04, 4, 2>();
-    // WriteBit<0x08, 4, 2>();
-    // WriteBit<0x10, 4, 2>();
-    // WriteBit<0x20, 4, 2>();
-    // WriteBit<0x40, 4, 2>();
-    // WriteBit<0x80, 4, 2>();
-
-    // // byte 3
-    // WriteBit<0x01, 4, 3>();
-    // WriteBit<0x02, 4, 3>();
-    // WriteBit<0x04, 4, 3>();
-    // WriteBit<0x08, 4, 3>();
-    // WriteBit<0x10, 4, 3>();
-    // WriteBit<0x20, 4, 3>();
-    // WriteBit<0x40, 4, 3>();
-    // WriteBit<0x80, 4, 3>();
-
-    // interrupts();
+    interrupts();
 }

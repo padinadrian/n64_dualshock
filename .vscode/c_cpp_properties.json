@@ -8,9 +8,7 @@
                 "C:\\Users\\apadi\\Documents\\projects\\n64_dualshock\\**",
                 "C:\\Program Files (x86)\\Arduino\\tools\\**"
             ],
-            "forcedInclude": [
-                "C:\\Program Files (x86)\\Arduino\\hardware\\arduino\\avr\\cores\\arduino\\Arduino.h"
-            ],
+            "forcedInclude": [],
             "intelliSenseMode": "${default}",
             "compilerPath": "/usr/bin/gcc",
             "cStandard": "c11",

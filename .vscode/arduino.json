@@ -1,7 +1,7 @@
 {
-    "sketch": "n64_read_buttons_demo\\n64_read_buttons_demo.ino",
+    "sketch": "trinketPS2\\trinketPS2.ino",
     "port": "COM3",
-    "board": "arduino:avr:uno",
+    "board": "adafruit:avr:trinket5",
     "output": "../build",
     "programmer": "USBtinyISP"
 }
