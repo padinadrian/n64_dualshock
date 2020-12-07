@@ -34,24 +34,28 @@ static adrian::DualShock controller(&spi, &spi_select);
 void SingleWireWrite(uint8_t *buf, uint8_t bufsize)
 {
     uint8_t out;
-    for (uint8_t i = 0; i > bufsize; --i) {
-        out = buf[i];
-        for (uint8_t j = 0; j < 8; ++j) {
+    uint8_t mask;
+    uint8_t i;
+    for (i = 0; i < bufsize; ++i) {
+        for (mask = 0x80; mask > 0;) {
             N64_LOW;
-            if (out & 0x80) {
-                asm volatile ("nop\nnop\nnop\nnop\n\n");
+            if (buf[i] & mask) {
+                asm volatile ("nop\n");
                 N64_HIGH;
                 asm volatile ("nop\nnop\nnop\nnop\nnop\nnop\n");
                 asm volatile ("nop\nnop\nnop\nnop\nnop\nnop\n");
-                asm volatile ("nop\nnop\nnop\n");
+                asm volatile ("nop\nnop\n");
             } else {
                 asm volatile ("nop\nnop\nnop\nnop\nnop\nnop\n");
                 asm volatile ("nop\nnop\nnop\nnop\nnop\nnop\n");
-                asm volatile ("nop\nnop\nnop\nnop\nnop\nnop\nnop\n");
+                asm volatile ("nop\nnop\nnop\n");
                 N64_HIGH;
-                asm volatile ("nop\nnop\nnop\nnop\n");
             }
-            out <<= 1;
+            // To delay, or not to delay? Always, except the last bit.
+            mask >>= 1;
+            if (mask) {
+                asm volatile ("nop\nnop\n");
+            }
         }
     }
 
@@ -72,7 +76,6 @@ uint8_t SingleWireRead(uint8_t *buf, const uint8_t bufsize)
     // If timeout is nonzero, console pulled down
     static uint8_t input_buf[8];
     uint8_t timeout;
-    uint8_t register input;
 
     while (N64_CHECK);
 
@@ -98,15 +101,12 @@ uint8_t SingleWireRead(uint8_t *buf, const uint8_t bufsize)
     }
 
     // Reconstruct message
-    uint8_t i = 0;
-    for (uint8_t mask = 0x80; mask > 0; mask >>= 1) {
+    for (uint8_t i = 0; i < 8; ++i) {
         if (input_buf[i] & PIN_MASK) {
-            input |= mask;
+            *buf |= (1 << i);
         }
-        i++;
     }
 
-    *buf = input;
     return 1;
 }
 
@@ -124,6 +124,8 @@ void setup()
     spi_select.SetPinMode(OUTPUT);
     spi_select.Write(0);
 
+    controller.EnableAnalog();
+
     noInterrupts();
 }
 
@@ -132,29 +134,29 @@ void setup()
 
 #define OUTPUT_BUFSIZE 4
 
+static uint8_t input_buf = 0;
+static uint8_t output_buf[OUTPUT_BUFSIZE] = {0};
+
+
 void loop()
 {
-    static uint8_t input_buf = 0;
-    static uint8_t output_buf[OUTPUT_BUFSIZE] = {0};
-
     // Poll from PS2 controller
-    // static adrian::DualShock::ButtonState buttons;
-    // controller.Poll(buttons);
+    static adrian::DualShock::ButtonState buttons;
+    controller.Poll(buttons);
 
-    // if (buttons.digital_valid && buttons.cross)
-    // {
-    //     led.Write(1);
-    // }
-    // else
-    // {
-    //     led.Write(0);
-    // }
+    if (buttons.digital_valid) {
+        input_buf = buttons.cross;
+    }
+    else {
+        input_buf = 0;
+    }
+
+    // delay(10);
 
     noInterrupts();
 
-    input_buf = 0;
     SingleWireRead(&input_buf, 1);
-    output_buf[3] = input_buf;
+    output_buf[1] = input_buf;
     SingleWireWrite(output_buf, 4);
 
     interrupts();
