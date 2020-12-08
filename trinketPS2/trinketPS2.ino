@@ -124,8 +124,6 @@ void setup()
     spi_select.SetPinMode(OUTPUT);
     spi_select.Write(0);
 
-    controller.EnableAnalog();
-
     noInterrupts();
 }
 
@@ -135,29 +133,83 @@ void setup()
 #define OUTPUT_BUFSIZE 4
 
 static uint8_t input_buf = 0;
-static uint8_t output_buf[OUTPUT_BUFSIZE] = {0};
+static uint8_t output_buf[OUTPUT_BUFSIZE] = { 0 };
 
+static adrian::DualShock::ButtonState ps2_buttons;
+static adrian::N64Controller::ButtonState n64_buttons;
+
+static uint8_t status_buf[3] = { 0x05, 0x00, 0x00 };
+static uint8_t read_response[33] = { 0 };
 
 void loop()
 {
-    // Poll from PS2 controller
-    static adrian::DualShock::ButtonState buttons;
-    controller.Poll(buttons);
+    int32_t tmp;
 
-    if (buttons.digital_valid) {
-        input_buf = buttons.cross;
+    // Poll from PS2 controller
+    if (!controller.IsAnalogEnabled()) {
+        controller.EnableAnalog();
     }
     else {
-        input_buf = 0;
+        controller.Poll(ps2_buttons);
     }
 
-    // delay(10);
+    if (ps2_buttons.analog_valid) {
+        n64_buttons.a = ps2_buttons.cross;
+        n64_buttons.b = ps2_buttons.square;
+        n64_buttons.z = ps2_buttons.left2;
+        n64_buttons.start = ps2_buttons.start;
+        n64_buttons.c_up = ps2_buttons.d_up;
+        n64_buttons.c_down = ps2_buttons.d_down;
+        n64_buttons.c_left = ps2_buttons.d_left;
+        n64_buttons.c_right = ps2_buttons.d_right;
+        n64_buttons.l = ps2_buttons.left1;
+        n64_buttons.r = ps2_buttons.right2;
 
+        tmp = ps2_buttons.analog_left_x;
+        tmp = ((tmp - 0x80) * 0x50 / 0x80);
+        n64_buttons.joy_x = tmp;
+
+        tmp = ps2_buttons.analog_left_y;
+        tmp = ((tmp - 0x80) * 0x50 / 0x80);
+        n64_buttons.joy_y = tmp;
+    }
+    else {
+        // Set all buttons and joysticks to zero
+        memset((void *)(&n64_buttons), 0, sizeof(n64_buttons));
+    }
+
+    // Respond to commands from N64
     noInterrupts();
 
     SingleWireRead(&input_buf, 1);
-    output_buf[1] = input_buf;
-    SingleWireWrite(output_buf, 4);
+    switch (input_buf) {
+        // Status
+        case 0xFF:      // Fall-through
+        case 0x00: {
+            SingleWireWrite(status_buf, sizeof(status_buf));
+            break;
+        }
+        // Poll
+        case 0x01: {
+            // output_buf[1] = input_buf;
+            SingleWireWrite((uint8_t*)(&n64_buttons), sizeof(n64_buttons));
+            break;
+        }
+        // Read
+        case 0x02: {
+            SingleWireWrite(read_response, sizeof(read_response));
+            break;
+        }
+        // Write
+        case 0x03: {
+            // TODO
+            break;
+        }
+        default: {
+            // Nothing
+            break;
+        }
+    }
 
     interrupts();
 }
