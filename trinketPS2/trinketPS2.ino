@@ -6,11 +6,7 @@
  */
 
 /* ===== Includes ====== */
-#define EMBEDDED_TOOLS_BASE_DIRECTORY "C:\\Users\\apadi\\Documents\\projects\\n64_dualshock\\"
-// #include EMBEDDED_TOOLS_BASE_DIRECTORY "/gpio/adrian_spi_trinket.hpp"
-// #include EMBEDDED_TOOLS_BASE_DIRECTORY "/spi/adrian_spi_trinket.hpp"
-// #include "ps2/adrian_dualshock.hpp"
-// #include "C:\\Users\\apadi\\Documents\\projects\\n64_dualshock\\embedded_tools/n64/adrian_n64_console.hpp"
+// #include "C:\\Users\\apadi\\Documents\\projects\\n64_dualshock\\embedded_tools/adrian_helpers.hpp"
 #include "C:\\Users\\apadi\\Documents\\projects\\n64_dualshock\\embedded_tools/gpio/adrian_gpio_arduino.hpp"
 #include "C:\\Users\\apadi\\Documents\\projects\\n64_dualshock\\embedded_tools/spi/adrian_spi_trinket.hpp"
 #include "C:\\Users\\apadi\\Documents\\projects\\n64_dualshock\\embedded_tools/ps2/adrian_dualshock.hpp"
@@ -24,38 +20,70 @@ static adrian::DualShock controller(&spi, &spi_select);
 
 /* ===== Helpers ===== */
 
-#define N64_PIN 4
-#define PIN_MASK (1 << N64_PIN)
-#define N64_HIGH  (DDRB &= ~PIN_MASK)  // set to input
-#define N64_LOW   (DDRB |= PIN_MASK)   // set to output
-#define N64_CHECK (PINB & PIN_MASK)    // read pin
+#define N64_PIN   4
+#define N64_MASK  (1 << N64_PIN)
+#define N64_HIGH  (DDRB &= ~N64_MASK)  // set to input
+#define N64_LOW   (DDRB |= N64_MASK)   // set to output
+#define N64_CHECK (PINB & N64_MASK)    // read pin
+
+// The definitions below are just for testing, but since
+// removing them affects the timing, I've decided to leave
+// them in place for now.
+#define TEST_PIN0  3
+#define PIN0_MASK  (1 << TEST_PIN0)
+#define PIN0_HIGH  (DDRB &= ~PIN0_MASK)  // set to input
+#define PIN0_LOW   (DDRB |= PIN0_MASK)   // set to output
+
+#define TEST_PIN1  1
+#define PIN1_MASK   (1 << TEST_PIN1)
+#define PIN1_HIGH   (PORTB |= PIN1_MASK)
+#define PIN1_LOW    (PORTB &= ~PIN1_MASK)
+#define PIN1_INPUT  (DDRB &= ~PIN1_MASK)  // set to input
+#define PIN1_OUTPUT (DDRB |= PIN1_MASK)   // set to output
+
 
 // Write up to 255 bytes
 void SingleWireWrite(uint8_t *buf, uint8_t bufsize)
 {
-    uint8_t out;
+    uint8_t flag = 1;
     uint8_t mask;
     uint8_t i;
-    for (i = 0; i < bufsize; ++i) {
+    for (i = 0; flag; ) {
         for (mask = 0x80; mask > 0;) {
             N64_LOW;
             if (buf[i] & mask) {
-                asm volatile ("nop\n");
-                N64_HIGH;
-                asm volatile ("nop\nnop\nnop\nnop\nnop\nnop\n");
-                asm volatile ("nop\nnop\nnop\nnop\nnop\nnop\n");
-                asm volatile ("nop\nnop\n");
+                if (mask > 1) {
+                    asm volatile ("nop\nnop\n");
+                    N64_HIGH;
+                    asm volatile ("nop\nnop\nnop\nnop\nnop\nnop\n");
+                    asm volatile ("nop\nnop\nnop\nnop\nnop\nnop\nnop\n");
+                    asm volatile ("nop\nnop\nnop\n");
+                }
+                else {
+                    asm volatile ("nop\n");
+                    N64_HIGH;
+                    ++i;
+                    flag = (i < bufsize);
+                    asm volatile ("nop\nnop\nnop\nnop\n");
+                    asm volatile ("nop\nnop\nnop\n");
+                }
             } else {
-                asm volatile ("nop\nnop\nnop\nnop\nnop\nnop\n");
-                asm volatile ("nop\nnop\nnop\nnop\nnop\nnop\n");
-                asm volatile ("nop\nnop\nnop\n");
-                N64_HIGH;
+                if (mask > 1) {
+                    asm volatile ("nop\nnop\nnop\nnop\nnop\nnop\n");
+                    asm volatile ("nop\nnop\nnop\nnop\nnop\nnop\nnop\n");
+                    asm volatile ("nop\nnop\nnop\n");
+                    N64_HIGH;
+                    asm volatile ("nop\nnop\nnop\n");
+                }
+                else {
+                    ++i;
+                    flag = (i < bufsize);
+                    asm volatile ("nop\nnop\nnop\nnop\n");
+                    asm volatile ("nop\nnop\nnop\n");
+                    N64_HIGH;
+                }
             }
-            // To delay, or not to delay? Always, except the last bit.
             mask >>= 1;
-            if (mask) {
-                asm volatile ("nop\nnop\n");
-            }
         }
     }
 
@@ -75,37 +103,54 @@ uint8_t SingleWireRead(uint8_t *buf, const uint8_t bufsize)
 {
     // If timeout is nonzero, console pulled down
     static uint8_t input_buf[8];
-    uint8_t timeout;
 
+    // Set pin0 and pin1 to output
+    // Set pin0 and pin1 to low
+    PIN1_OUTPUT;
+    PIN1_HIGH;
+    PIN1_LOW;
+    PIN0_LOW;
+
+    // Wait for line to drop low
     while (N64_CHECK);
 
     for (uint8_t i = 0; i < 8; ++i) {
 
-        // Wait for line to drop low
-        timeout = 255;
-        while (N64_CHECK && (timeout--));
-        if (timeout == 0) { break; }
-
         // TODO: Wait 2 ms
-        asm volatile ("nop\nnop\nnop\nnop\n");
+        asm volatile ("nop\nnop\nnop\nnop\nnop\n");
 
         // Read a bit
-        PINB |= 0b00001000;
-        input_buf[i] = PINB;
-        PINB &= 0b11110111;
+        PIN0_HIGH;
+        input_buf[i] = N64_CHECK;
+        PIN0_LOW;
+
+        // This is just for testing.
+        // However we need to keep it to get consistent timing.
+        if (input_buf[i]) {
+            PIN1_HIGH;
+        }
+        else {
+            PIN1_LOW;
+        }
 
         // Wait to go back up and then down
-        PINB |= 0b00001000;
-        while (!N64_CHECK);
-        PINB &= 0b11110111;
+        asm volatile ("nop\nnop\nnop\n");
     }
 
     // Reconstruct message
-    for (uint8_t i = 0; i < 8; ++i) {
-        if (input_buf[i] & PIN_MASK) {
-            *buf |= (1 << i);
-        }
+    if (input_buf[7]) {
+        *buf = 1;
     }
+    else {
+        *buf = 0;
+    }
+
+    // Set pin0 and pin1 to output
+    // Set pin0 and pin1 to high
+    PIN1_OUTPUT;
+    PIN1_HIGH;
+    PIN0_LOW;
+    PINB |= PIN0_MASK;
 
     return 1;
 }
@@ -115,16 +160,11 @@ uint8_t SingleWireRead(uint8_t *buf, const uint8_t bufsize)
 
 void setup()
 {
-    digitalWrite(N64_PIN, 0);
-    pinMode(N64_PIN, INPUT);
-    spi.Initialize();
-
-    pinMode(0, INPUT);
-    pinMode(1, OUTPUT);
     spi_select.SetPinMode(OUTPUT);
     spi_select.Write(0);
 
-    noInterrupts();
+    digitalWrite(N64_PIN, 0);
+    pinMode(N64_PIN, INPUT);
 }
 
 
@@ -138,12 +178,51 @@ static uint8_t output_buf[OUTPUT_BUFSIZE] = { 0 };
 static adrian::DualShock::ButtonState ps2_buttons;
 static adrian::N64Controller::ButtonState n64_buttons;
 
-static uint8_t status_buf[3] = { 0x05, 0x00, 0x00 };
+static uint8_t status_buf[3] = { 0x05, 0x00, 0x02 };
 static uint8_t read_response[33] = { 0 };
 
 void loop()
 {
     int32_t tmp;
+
+    noInterrupts();
+
+    // Respond to commands from N64
+    if (SingleWireRead(&input_buf, 1)) {
+        switch (input_buf) {
+            // Status
+            case 0xFF:      // Fall-through
+            case 0x00: {
+                SingleWireWrite(status_buf, sizeof(status_buf));
+                break;
+            }
+            // Poll
+            case 0x01: {
+                // output_buf[1] = input_buf;
+                SingleWireWrite((uint8_t*)(&n64_buttons), sizeof(n64_buttons));
+                break;
+            }
+            // Read
+            case 0x02: {
+                SingleWireWrite(read_response, sizeof(read_response));
+                break;
+            }
+            // Write
+            case 0x03: {
+                // TODO
+                break;
+            }
+            default: {
+                // This is for debugging SingleWireRead.
+                // Echo back what you thought the command was.
+                status_buf[1] = input_buf;
+                SingleWireWrite(status_buf, sizeof(status_buf));
+                break;
+            }
+        }
+    }
+
+    interrupts();
 
     // Poll from PS2 controller
     if (!controller.IsAnalogEnabled()) {
@@ -170,46 +249,11 @@ void loop()
         n64_buttons.joy_x = tmp;
 
         tmp = ps2_buttons.analog_left_y;
-        tmp = ((tmp - 0x80) * 0x50 / 0x80);
+        tmp = ((tmp - 0x80) * -0x50 / 0x80);
         n64_buttons.joy_y = tmp;
     }
     else {
         // Set all buttons and joysticks to zero
         memset((void *)(&n64_buttons), 0, sizeof(n64_buttons));
     }
-
-    // Respond to commands from N64
-    noInterrupts();
-
-    SingleWireRead(&input_buf, 1);
-    switch (input_buf) {
-        // Status
-        case 0xFF:      // Fall-through
-        case 0x00: {
-            SingleWireWrite(status_buf, sizeof(status_buf));
-            break;
-        }
-        // Poll
-        case 0x01: {
-            // output_buf[1] = input_buf;
-            SingleWireWrite((uint8_t*)(&n64_buttons), sizeof(n64_buttons));
-            break;
-        }
-        // Read
-        case 0x02: {
-            SingleWireWrite(read_response, sizeof(read_response));
-            break;
-        }
-        // Write
-        case 0x03: {
-            // TODO
-            break;
-        }
-        default: {
-            // Nothing
-            break;
-        }
-    }
-
-    interrupts();
 }
