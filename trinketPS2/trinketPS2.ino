@@ -6,7 +6,6 @@
  */
 
 /* ===== Includes ====== */
-// #include "C:\\Users\\apadi\\Documents\\projects\\n64_dualshock\\embedded_tools/adrian_helpers.hpp"
 #include "C:\\Users\\apadi\\Documents\\projects\\n64_dualshock\\embedded_tools/gpio/adrian_gpio_arduino.hpp"
 #include "C:\\Users\\apadi\\Documents\\projects\\n64_dualshock\\embedded_tools/spi/adrian_spi_trinket.hpp"
 #include "C:\\Users\\apadi\\Documents\\projects\\n64_dualshock\\embedded_tools/ps2/adrian_dualshock.hpp"
@@ -237,10 +236,14 @@ void loop()
         n64_buttons.b = ps2_buttons.square;
         n64_buttons.z = ps2_buttons.left2;
         n64_buttons.start = ps2_buttons.start;
-        n64_buttons.c_up = ps2_buttons.d_up;
-        n64_buttons.c_down = ps2_buttons.d_down;
-        n64_buttons.c_left = ps2_buttons.d_left;
-        n64_buttons.c_right = ps2_buttons.d_right;
+        n64_buttons.c_up = ps2_buttons.select;
+        n64_buttons.c_down = ps2_buttons.circle;
+        n64_buttons.c_left = ps2_buttons.triangle;
+        n64_buttons.c_right = ps2_buttons.right1;
+        n64_buttons.d_up = ps2_buttons.d_up;
+        n64_buttons.d_down = ps2_buttons.d_down;
+        n64_buttons.d_left = ps2_buttons.d_left;
+        n64_buttons.d_right = ps2_buttons.d_right;
         n64_buttons.l = ps2_buttons.left1;
         n64_buttons.r = ps2_buttons.right2;
 
