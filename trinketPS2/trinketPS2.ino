@@ -164,6 +164,8 @@ void setup()
 
     digitalWrite(N64_PIN, 0);
     pinMode(N64_PIN, INPUT);
+
+    controller.EnableAnalog();
 }
 
 
