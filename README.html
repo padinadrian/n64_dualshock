@@ -149,30 +149,63 @@
   <![endif]-->
 </head>
 <body>
-<header id="title-block-header">
-<h1 class="title">README</h1>
-</header>
 <h1 id="n64dualshock">N64/DualShock</h1>
-<p>Author: Adrian Padin (<a href="mailto:padin.adrian@gmail.com">padin.adrian@gmail.com</a>) Date: December 13, 2020</p>
-<h2 id="prototype">Prototype</h2>
-<p><img src="pics/prototype.jpg" title="Prototype" /></p>
-<h2 id="resources">Resources:</h2>
-<h3 id="embedded_tools">embedded_tools</h3>
+<p>Author: Adrian Padin (<a href="mailto:padin.adrian@gmail.com">padin.adrian@gmail.com</a>)</p>
+<p>Last updated: December 13, 2020</p>
+<h2 id="introduction">Introduction</h2>
+<p>This is the results of my work attempting to use a PlayStation 2 DualShock 2 controller on a Nintendo 64.</p>
+<p>I used an <a href="https://learn.adafruit.com/introducing-trinket">Adafruit Trinket Mini</a> to read from the DualShock controller, remap the buttons, and send the data to the N64.</p>
+<p>Some of the tasks I accomplished along the way:</p>
 <ul>
-<li>Github repository: <a href="https://github.com/padinadrian/embedded_tools"><a href="https://github.com/padinadrian/embedded_tools">https://github.com/padinadrian/embedded_tools</a></a></li>
+<li><p>Implementing the beginnings of a SPI library for the Trinket using the Atmel USI (Universal Serial Interface).</p></li>
+<li><p>Using bit-banging to read and write from the N64 using the N64's unique single-wire interface.</p></li>
+<li><p>Reprogramming the Trinket to use a different bootloader which allows it to boot much faster.</p></li>
 </ul>
-<h3 id="attiny85-bootloader">ATTiny85 Bootloader</h3>
+<p>You can read more about the N64, SPI, and other topics by checking out the resources below.</p>
+<h2 id="prototype">Prototype</h2>
+<p>This is a picture of the prototype device:</p>
+<p><img src="docs/prototype.jpg" title="Prototype" /></p>
+<p>Pin mapping:</p>
 <ul>
-<li><p>Repairing bootloader: <a href="https://learn.adafruit.com/introducing-trinket/repairing-bootloader"><a href="https://learn.adafruit.com/introducing-trinket/repairing-bootloader">https://learn.adafruit.com/introducing-trinket/repairing-bootloader</a></a></p></li>
+<li>#0 - MISO (DualShock controller data)</li>
+<li>#1 - MOSI (DualShock controller command)</li>
+<li>#2 - SCLK (DualShock controller clock)</li>
+<li>#3 - SSEL (DualShock controller select)</li>
+<li>#4 - N64 data in/out</li>
+</ul>
+<p>Here's a brief description of what's happening here:</p>
+<ul>
+<li><p>On the left, we have the power and ground lines. These are connected directly to the N64 controller's power, which is at 3.3V. This power line is fed into the VBAT pin on the Trinket. (In my prototype I used a 5V Trinket but I haven't noticed any issues).</p></li>
+<li><p>There are two GPIO pins on the left side of the board: #4 is used to communicate with the N64 and has a 22k resistor tied to the power line (since the N64 protocol is open-collector); and #3 (yellow wire in the picture) is the SPI select line.</p></li>
+<li><p>The three pins on the right side (green, white, and blue) are MISO, MOSI, and SCLK respectively. These connect to the PS2 controller, which is the large black connector on the bottom right.</p></li>
+</ul>
+<h2 id="resources">Resources</h2>
+<h4 id="n64-controller">N64 Controller</h4>
+<p>In order to interface with the N64 I had to program my Trinket to behave like an N64 controller. Since the N64 uses such an odd custom protocol I used code from an Instructables tutorial for reference.</p>
+<p>(I did not copy the code directly since it is designed for interfacing with a controller, not the N64 console itself.)</p>
+<p>Instructables tutorial by quasse: <a href="https://www.instructables.com/Use-an-Arduino-with-an-N64-controller/"><a href="https://www.instructables.com/Use-an-Arduino-with-an-N64-controller/">https://www.instructables.com/Use-an-Arduino-with-an-N64-controller/</a></a></p>
+<p>There's also a great tutorial by qwertymodo.com on reverse-engineering the N64 protocol which was very insightful, especially when it came to the data layer and remapping the button and joystick data.</p>
+<p>qwertymodo: <a href="http://www.qwertymodo.com/hardware-projects/n64/n64-controller"><a href="http://www.qwertymodo.com/hardware-projects/n64/n64-controller">http://www.qwertymodo.com/hardware-projects/n64/n64-controller</a></a></p>
+<h4 id="playstation-2--dualshock-2">PlayStation 2 / DualShock 2</h4>
+<p>I have lots of information on the PS2 controller in my embedded_tools library (see below).</p>
+<h4 id="embedded_tools">embedded_tools</h4>
+<p>The embedded_tools library is a collection of convenient C++ utilities and libraries that I use across several of my projects. I'm continually developing it and adding functionality as I need it, but if you would like to use any part of it or contribute, you are more than welcome.</p>
+<p>Github repository: <a href="https://github.com/padinadrian/embedded_tools"><a href="https://github.com/padinadrian/embedded_tools">https://github.com/padinadrian/embedded_tools</a></a></p>
+<h4 id="attiny85-bootloader">ATTiny85 Bootloader</h4>
+<p>One of the issues I ran into in this project was boot time - the built-in Trinket firmware contains a bootloader that can take several seconds to boot, because it is searching for a USB connection to allow it to upload sketches.</p>
+<p>After some digging online I found a bootloader (created by adafruit user hiduino) that allows you to skip the boot process if waking from a cold start, and only enters the bootloader when pressing the reset button. This allowed my code to start running almost immediately (under 100ms) instead of taking 2-3 seconds.</p>
+<ul>
+<li><p>Repairing or replacing bootloader: <a href="https://learn.adafruit.com/introducing-trinket/repairing-bootloader"><a href="https://learn.adafruit.com/introducing-trinket/repairing-bootloader">https://learn.adafruit.com/introducing-trinket/repairing-bootloader</a></a></p></li>
 <li><p>New bootloader image: <a href="https://forums.adafruit.com/viewtopic.php?f=52&amp;t=54218&amp;p=376898&amp;hilit=trinket+bootloader+skip#p376898"><a href="https://forums.adafruit.com/viewtopic.php?f=52&amp;t=54218&amp;p=376898&amp;hilit=trinket+bootloader+skip#p376898">https://forums.adafruit.com/viewtopic.php?f=52&amp;t=54218&amp;p=376898&amp;hilit=trinket+bootloader+skip#p376898</a></a></p></li>
 </ul>
-<h2 id="todo">TODO</h2>
+<h2 id="to-do">To-Do</h2>
 <ul>
-<li><p>Allow an attachable PS2 controller (instead of break-out demo)</p>
+<li><p>Allow an attachable PS2 controller (instead of broken-out cheap controller).</p>
 <ul>
 <li><a href="https://www.amazon.com/PS2-Controller-Extension-Cable-Playstation-2/dp/B00005MDZ1">https://www.amazon.com/PS2-Controller-Extension-Cable-Playstation-2/dp/B00005MDZ1</a></li>
 </ul></li>
-<li><p>Put together a more sturdy setup (PCB? or solder board?)</p></li>
+<li><p>Put together a more sturdy setup (PCB? or solder board?).</p></li>
+<li><p>Refactor and migrate N64-related code back into embedded_tools.</p></li>
 </ul>
 </body>
 </html>
