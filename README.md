@@ -23,6 +23,20 @@ This is a picture of the prototype device:
 
 ![](pics/prototype.jpg "Prototype")
 
+
+Pin mapping:
+* #0 - MISO (DualShock controller data)
+* #1 - MOSI (DualShock controller command)
+* #2 - SCLK (DualShock controller clock)
+* #3 - SSEL (DualShock controller select)
+* #4 - N64 data in/out
+
+Here's a brief description of what's happening here:
+* On the left, we have the power and ground lines. These are connected directly to the N64 controller's power, which is at 3.3V. This power line is fed into the VBAT pin on the Trinket. (In my prototype I used a 5V Trinket but I haven't noticed any issues).
+* There are two GPIO pins on the left side of the board: #4 is used to communicate with the N64 and has a 22k resistor tied to the power line (since the N64 protocol is open-collector); and #3 (yellow wire in the picture) is the SPI select line.
+* The three pins on the right side (green, white, and blue) are MISO, MOSI, and SCLK respectively. These connect to the PS2 controller, which is the large black connector on the bottom right.
+
+
 ## Resources:
 
 ### embedded_tools
