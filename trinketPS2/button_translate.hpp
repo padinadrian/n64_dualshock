@@ -63,10 +63,9 @@ namespace adrian
         n64_buttons_out.r = ps2_buttons_in.right2;
 
         // Translate analog joystick data.
-        // 0x00 --> 0x80  ---    0 --> -128
-        // 0x80 --> 0x00  ---  128 -->    0
-        // 0xFF --> 0x7F  ---  255 -->  127
-        // n64_buttons_out.joy_x
+        n64_buttons_out.joy_x = TranslateJoystick(ps2_buttons_in.analog_left_x);
+        // For some reason the Y axis has to be inverted.
+        n64_buttons_out.joy_y = -TranslateJoystick(ps2_buttons_in.analog_left_y);
     }
 }
 
