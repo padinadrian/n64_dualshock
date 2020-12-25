@@ -26,7 +26,7 @@ namespace adrian
      *      0x40 --> -0x28 = -40
      *      0x80 --> 0x00 = 0
      *      0xC0 --> 0x28 = 40
-     *      0xFF --> 0x50 = 80 (approximately)
+     *      0xFF --> 0x50 = 80
      */
     inline int8_t TranslateJoystick(uint8_t ps2_joy)
     {

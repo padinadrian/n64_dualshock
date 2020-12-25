@@ -26,7 +26,7 @@ static adrian::DualShock controller(&spi, &spi_select);
 #define N64_LOW   (DDRB |= N64_MASK)   // set to output
 #define N64_CHECK (PINB & N64_MASK)    // read pin
 
-// The definitions below are just for testing, but since
+// The definitions below were just for testing, but since
 // removing them affects the timing, I've decided to leave
 // them in place for now.
 #define TEST_PIN0  3
@@ -97,8 +97,9 @@ void SingleWireWrite(uint8_t *buf, uint8_t bufsize)
     N64_HIGH;
 }
 
-// Read a command
-// Returns the number of bytes read
+// Read a command from the N64 console.
+// Returns the number of bytes read.
+// (For now only supports reading a single byte)
 uint8_t SingleWireRead(uint8_t *buf, const uint8_t bufsize)
 {
     // If timeout is nonzero, console pulled down
@@ -195,6 +196,7 @@ void loop()
             // Status
             case 0xFF:      // Fall-through
             case 0x00: {
+                status_buf[1] = 0;
                 SingleWireWrite(status_buf, sizeof(status_buf));
                 break;
             }
