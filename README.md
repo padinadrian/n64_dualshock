@@ -7,7 +7,7 @@ Last updated: December 13, 2020
 
 ## Introduction
 
-This is the results of my work attempting to use a PlayStation 2 DualShock 2 controller on a Nintendo 64.
+This repo contains the results of my work attempting to use a PlayStation 2 DualShock 2 controller with a Nintendo 64.
 
 I used an [Adafruit Trinket Mini](https://learn.adafruit.com/introducing-trinket) to read from the DualShock controller, remap the buttons, and send the data to the N64.
 
@@ -17,7 +17,7 @@ Some of the tasks I accomplished along the way:
 
 * Using bit-banging to read and write from the N64 using the N64's unique single-wire interface.
 
-* Reprogramming the Trinket to use a different bootloader which allows it to boot much faster.
+* Reprogramming the Trinket to use a modified bootloader which allows it to boot much faster.
 
 You can read more about the N64, SPI, and other topics by checking out the resources below.
 
@@ -40,7 +40,7 @@ Here's a brief description of what's happening here:
 
 * On the left, we have the power and ground lines. These are connected directly to the N64 controller's power, which is at 3.3V. This power line is fed into the VBAT pin on the Trinket. (In my prototype I used a 5V Trinket but I haven't noticed any issues).
 
-* There are two GPIO pins on the left side of the board: #4 is used to communicate with the N64 and has a 22k resistor tied to the power line (since the N64 protocol is open-collector); and #3 (yellow wire in the picture) is the SPI select line.
+* There are two GPIO pins on the left side of the board: #4 is used to communicate with the N64 and has a 22k pull-up resistor tied to the power line (since the N64 protocol is open-collector); and #3 (yellow wire in the picture) is the SPI select line.
 
 * The three pins on the right side (green, white, and blue) are MISO, MOSI, and SCLK respectively. These connect to the PS2 controller, which is the large black connector on the bottom right.
 
@@ -49,28 +49,21 @@ Here's a brief description of what's happening here:
 
 #### N64 Controller
 
-In order to interface with the N64 I had to program my Trinket to behave like an N64 controller. Since the N64 uses such an odd custom protocol I used code from an Instructables tutorial for reference.
+In order to interface with the N64 I had to program the Trinket to behave like an N64 controller. Since the N64 uses such an odd custom protocol I used code from an [Instructables tutorial by quasse](https://www.instructables.com/Use-an-Arduino-with-an-N64-controller/) for reference.
 
 (I did not copy the code directly since it is designed for interfacing with a controller, not the N64 console itself.)
 
-Instructables tutorial by quasse:
-  [https://www.instructables.com/Use-an-Arduino-with-an-N64-controller/](https://www.instructables.com/Use-an-Arduino-with-an-N64-controller/)
-
-There's also a great tutorial by qwertymodo.com on reverse-engineering the N64 protocol which was very insightful, especially when it came to the data layer and remapping the button and joystick data.
-
-qwertymodo:
-  [http://www.qwertymodo.com/hardware-projects/n64/n64-controller](http://www.qwertymodo.com/hardware-projects/n64/n64-controller)
+There's also a great [tutorial by qwertymodo.com](http://www.qwertymodo.com/hardware-projects/n64/n64-controller) on reverse-engineering the N64 protocol which was very insightful, especially when it came to the data layer and remapping the button and joystick data.
 
 #### PlayStation 2 / DualShock 2
 
-I have lots of information on the PS2 controller in my embedded_tools library (see below).
+I have lots of information on the PS2 controller in my `embedded_tools` library (see below).
 
 #### embedded_tools
 
 The embedded_tools library is a collection of convenient C++ utilities and libraries that I use across several of my projects. I'm continually developing it and adding functionality as I need it, but if you would like to use any part of it or contribute, you are more than welcome.
 
-Github repository:
-  [https://github.com/padinadrian/embedded_tools](https://github.com/padinadrian/embedded_tools)
+You can check out the [Github repository](https://github.com/padinadrian/embedded_tools) for more details.
 
 #### ATTiny85 Bootloader
 
@@ -92,4 +85,6 @@ After some digging online I found a bootloader (created by adafruit user hiduino
 
 * Put together a more sturdy setup (PCB? or solder board?).
 
-* Refactor and migrate N64-related code back into embedded_tools.
+* Make a case (3D-printed maybe).
+
+* Refactor and migrate N64-related code back into `embedded_tools`.
