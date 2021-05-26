@@ -18,15 +18,15 @@ extern uint8_t NUMIMAGES;
 
 uint16_t readSignature (void)
 {
-  SPI.setClockDivider(CLOCKSPEED_FUSES); 
-    
+  SPI.setClockDivider(CLOCKSPEED_FUSES);
+
   uint16_t target_type = 0;
   Serial.print("\nReading signature:");
-  
+
   target_type = spi_transaction(0x30, 0x00, 0x01, 0x00);
   target_type <<= 8;
   target_type |= spi_transaction(0x30, 0x00, 0x02, 0x00);
-  
+
   Serial.println(target_type, HEX);
   if (target_type == 0 || target_type == 0xFFFF) {
     if (target_type == 0) {
@@ -71,8 +71,8 @@ image_t *findImage (uint16_t signature)
  */
 boolean programFuses (const byte *fuses)
 {
-  SPI.setClockDivider(CLOCKSPEED_FUSES); 
-    
+  SPI.setClockDivider(CLOCKSPEED_FUSES);
+
   byte f;
   Serial.print("\nSetting fuses");
 
@@ -114,7 +114,7 @@ boolean programFuses (const byte *fuses)
  */
 boolean verifyFuses (const byte *fuses, const byte *fusemask)
 {
-  SPI.setClockDivider(CLOCKSPEED_FUSES); 
+  SPI.setClockDivider(CLOCKSPEED_FUSES);
   byte f;
   Serial.println(F("Verifying fuses..."));
   f = pgm_read_byte(&fuses[FUSE_PROT]);
@@ -122,7 +122,7 @@ boolean verifyFuses (const byte *fuses, const byte *fusemask)
     uint8_t readfuse = spi_transaction(0x58, 0x00, 0x00, 0x00);  // lock fuse
     readfuse &= pgm_read_byte(&fusemask[FUSE_PROT]);
     Serial.print(F("\tLock Fuse: ")); Serial.print(f, HEX);  Serial.print(" is "); Serial.println(readfuse, HEX);
-    if (readfuse != f) 
+    if (readfuse != f)
       return false;
   }
   f = pgm_read_byte(&fuses[FUSE_LOW]);
@@ -130,7 +130,7 @@ boolean verifyFuses (const byte *fuses, const byte *fusemask)
     uint8_t readfuse = spi_transaction(0x50, 0x00, 0x00, 0x00);  // low fuse
     Serial.print(F("\tLow Fuse: 0x"));  Serial.print(f, HEX); Serial.print(" is 0x"); Serial.println(readfuse, HEX);
     readfuse &= pgm_read_byte(&fusemask[FUSE_LOW]);
-    if (readfuse != f) 
+    if (readfuse != f)
       return false;
   }
   f = pgm_read_byte(&fuses[FUSE_HIGH]);
@@ -138,7 +138,7 @@ boolean verifyFuses (const byte *fuses, const byte *fusemask)
     uint8_t readfuse = spi_transaction(0x58, 0x08, 0x00, 0x00);  // high fuse
     readfuse &= pgm_read_byte(&fusemask[FUSE_HIGH]);
     Serial.print(F("\tHigh Fuse: 0x"));  Serial.print(f, HEX); Serial.print(" is 0x");  Serial.println(readfuse, HEX);
-    if (readfuse != f) 
+    if (readfuse != f)
       return false;
   }
   f = pgm_read_byte(&fuses[FUSE_EXT]);
@@ -146,7 +146,7 @@ boolean verifyFuses (const byte *fuses, const byte *fusemask)
     uint8_t readfuse = spi_transaction(0x50, 0x08, 0x00, 0x00);  // ext fuse
     readfuse &= pgm_read_byte(&fusemask[FUSE_EXT]);
     Serial.print("\tExt Fuse: 0x"); Serial.print(f, HEX); Serial.print(" is 0x"); Serial.println(readfuse, HEX);
-    if (readfuse != f) 
+    if (readfuse != f)
       return false;
   }
   Serial.println();
@@ -164,12 +164,12 @@ boolean verifyFuses (const byte *fuses, const byte *fusemask)
 // Returns number of bytes decoded
 byte * readImagePage (byte *hextext, uint16_t pageaddr, uint8_t pagesize, byte *page)
 {
-  
+
   boolean firstline = true;
   uint16_t len;
   uint8_t page_idx = 0;
   byte *beginning = hextext;
-  
+
   byte b, cksum = 0;
 
   //Serial.print("page size = "); Serial.println(pagesize, DEC);
@@ -180,7 +180,7 @@ byte * readImagePage (byte *hextext, uint16_t pageaddr, uint8_t pagesize, byte *
 
   while (1) {
     uint16_t lineaddr;
-    
+
       // read one line!
     if (pgm_read_byte(hextext++) != ':') {
       error("No colon?");
@@ -190,40 +190,40 @@ byte * readImagePage (byte *hextext, uint16_t pageaddr, uint8_t pagesize, byte *
     len = hexton(pgm_read_byte(hextext++));
     len = (len<<4) + hexton(pgm_read_byte(hextext++));
     cksum = len;
-    
+
     // read high address byte
-    b = hexton(pgm_read_byte(hextext++));  
+    b = hexton(pgm_read_byte(hextext++));
     b = (b<<4) + hexton(pgm_read_byte(hextext++));
     cksum += b;
     lineaddr = b;
-    
+
     // read low address byte
-    b = hexton(pgm_read_byte(hextext++)); 
+    b = hexton(pgm_read_byte(hextext++));
     b = (b<<4) + hexton(pgm_read_byte(hextext++));
     cksum += b;
     lineaddr = (lineaddr << 8) + b;
-    
+
     if (lineaddr >= (pageaddr + pagesize)) {
       return beginning;
     }
 
-    b = hexton(pgm_read_byte(hextext++)); // record type 
+    b = hexton(pgm_read_byte(hextext++)); // record type
     b = (b<<4) + hexton(pgm_read_byte(hextext++));
     cksum += b;
     //Serial.print("Record type "); Serial.println(b, HEX);
-    if (b == 0x1) { 
+    if (b == 0x1) {
      // end record!
      break;
-    } 
+    }
 #if VERBOSE
-    Serial.print("\nLine address =  0x"); Serial.println(lineaddr, HEX);      
-    Serial.print("Page address =  0x"); Serial.println(pageaddr, HEX);      
+    Serial.print("\nLine address =  0x"); Serial.println(lineaddr, HEX);
+    Serial.print("Page address =  0x"); Serial.println(pageaddr, HEX);
 #endif
     for (byte i=0; i < len; i++) {
       // read 'n' bytes
       b = hexton(pgm_read_byte(hextext++));
       b = (b<<4) + hexton(pgm_read_byte(hextext++));
-      
+
       cksum += b;
 #if VERBOSE
       Serial.print(b, HEX);
@@ -253,7 +253,7 @@ byte * readImagePage (byte *hextext, uint16_t pageaddr, uint8_t pagesize, byte *
     Serial.println();
     Serial.println(page_idx, DEC);
 #endif
-    if (page_idx == pagesize) 
+    if (page_idx == pagesize)
       break;
   }
 #if VERBOSE
@@ -275,14 +275,14 @@ void flashWord (uint8_t hilo, uint16_t addr, uint8_t data) {
 }
 
 // Basically, write the pagebuff (with pagesize bytes in it) into page $pageaddr
-boolean flashPage (byte *pagebuff, uint16_t pageaddr, uint8_t pagesize) {  
-  SPI.setClockDivider(CLOCKSPEED_FLASH); 
+boolean flashPage (byte *pagebuff, uint16_t pageaddr, uint8_t pagesize) {
+  SPI.setClockDivider(CLOCKSPEED_FLASH);
 
 #if VERBOSE
   Serial.print("Flashing page "); Serial.println(pageaddr, HEX);
 #endif
   for (uint16_t i=0; i < pagesize/2; i++) {
-    
+
 #if VERBOSE
     Serial.print(pagebuff[2*i], HEX); Serial.print(' ');
     Serial.print(pagebuff[2*i+1], HEX); Serial.print(' ');
@@ -301,11 +301,11 @@ boolean flashPage (byte *pagebuff, uint16_t pageaddr, uint8_t pagesize) {
   Serial.print("  Commit Page: 0x");  Serial.print(pageaddr, HEX);
   Serial.print(" -> 0x"); Serial.println(commitreply, HEX);
 #endif
-  if (commitreply != pageaddr) 
+  if (commitreply != pageaddr)
     return false;
 
   busyWait();
-  
+
   return true;
 }
 
@@ -314,15 +314,15 @@ boolean flashPage (byte *pagebuff, uint16_t pageaddr, uint8_t pagesize) {
 // returns true if the image is the same as the hextext, returns false on any error
 boolean verifyImage (byte *hextext)  {
   uint16_t address = 0;
-  
-  SPI.setClockDivider(CLOCKSPEED_FLASH); 
+
+  SPI.setClockDivider(CLOCKSPEED_FLASH);
 
   uint16_t len;
   byte b, cksum = 0;
 
   while (1) {
     uint16_t lineaddr;
-    
+
       // read one line!
     if (pgm_read_byte(hextext++) != ':') {
       error("No colon");
@@ -332,7 +332,7 @@ boolean verifyImage (byte *hextext)  {
     len = (len<<4) + hexton(pgm_read_byte(hextext++));
     cksum = len;
 
-    b = hexton(pgm_read_byte(hextext++)); // record type 
+    b = hexton(pgm_read_byte(hextext++)); // record type
     b = (b<<4) + hexton(pgm_read_byte(hextext++));
     cksum += b;
     lineaddr = b;
@@ -340,23 +340,23 @@ boolean verifyImage (byte *hextext)  {
     b = (b<<4) + hexton(pgm_read_byte(hextext++));
     cksum += b;
     lineaddr = (lineaddr << 8) + b;
-    
-    b = hexton(pgm_read_byte(hextext++)); // record type 
+
+    b = hexton(pgm_read_byte(hextext++)); // record type
     b = (b<<4) + hexton(pgm_read_byte(hextext++));
     cksum += b;
 
     //Serial.print("Record type "); Serial.println(b, HEX);
-    if (b == 0x1) { 
+    if (b == 0x1) {
      // end record!
      break;
-    } 
-    
+    }
+
     for (byte i=0; i < len; i++) {
       // read 'n' bytes
       b = hexton(pgm_read_byte(hextext++));
       b = (b<<4) + hexton(pgm_read_byte(hextext++));
       cksum += b;
-      
+
 #if VERBOSE
       Serial.print("$");
       Serial.print(lineaddr, HEX);
@@ -382,10 +382,10 @@ boolean verifyImage (byte *hextext)  {
           Serial.println((spi_transaction(0x20, lineaddr >> 9, lineaddr / 2, 0) & 0xFF), HEX);
           return false;
         }
-      } 
-      lineaddr++;  
+      }
+      lineaddr++;
     }
-    
+
     b = hexton(pgm_read_byte(hextext++));  // chxsum
     b = (b<<4) + hexton(pgm_read_byte(hextext++));
     cksum += b;
@@ -406,9 +406,9 @@ boolean verifyImage (byte *hextext)  {
 // Send the erase command, then busy wait until the chip is erased
 
 void eraseChip(void) {
-  SPI.setClockDivider(CLOCKSPEED_FUSES); 
-    
-  spi_transaction(0xAC, 0x80, 0, 0);	// chip erase    
+  SPI.setClockDivider(CLOCKSPEED_FUSES);
+
+  spi_transaction(0xAC, 0x80, 0, 0);	// chip erase
   busyWait();
 }
 
@@ -427,7 +427,7 @@ void busyWait(void)  {
  */
 uint16_t spi_transaction (uint8_t a, uint8_t b, uint8_t c, uint8_t d) {
   uint8_t n, m;
-  SPI.transfer(a); 
+  SPI.transfer(a);
   n = SPI.transfer(b);
   //if (n != a) error = -1;
   m = SPI.transfer(c);

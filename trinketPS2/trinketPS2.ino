@@ -29,7 +29,7 @@ static adrian::DualShock controller(&spi, &spi_select);
 // The definitions below were just for testing, but since
 // removing them affects the timing, I've decided to leave
 // them in place for now.
-#define TEST_PIN0  3
+#define TEST_PIN0  0
 #define PIN0_MASK  (1 << TEST_PIN0)
 #define PIN0_HIGH  (DDRB &= ~PIN0_MASK)  // set to input
 #define PIN0_LOW   (DDRB |= PIN0_MASK)   // set to output
@@ -150,7 +150,7 @@ uint8_t SingleWireRead(uint8_t *buf, const uint8_t bufsize)
     // Set pin0 and pin1 to high
     PIN1_OUTPUT;
     PIN1_HIGH;
-    PIN0_LOW;
+    PIN0_HIGH;
     PINB |= PIN0_MASK;
 
     return 1;
@@ -186,7 +186,7 @@ static uint8_t read_response[33] = { 0 };
 
 void loop()
 {
-    int32_t tmp;
+    bool read_controller = false;
 
     noInterrupts();
 
@@ -194,16 +194,17 @@ void loop()
     if (SingleWireRead(&input_buf, 1)) {
         switch (input_buf) {
             // Status
-            case 0xFF:      // Fall-through
             case 0x00: {
                 status_buf[1] = 0;
                 SingleWireWrite(status_buf, sizeof(status_buf));
+                read_controller = true;
                 break;
             }
             // Poll
             case 0x01: {
                 // output_buf[1] = input_buf;
                 SingleWireWrite((uint8_t*)(&n64_buttons), sizeof(n64_buttons));
+                read_controller = false;
                 break;
             }
             // Read
@@ -217,6 +218,7 @@ void loop()
                 break;
             }
             default: {
+                break;
                 // This is for debugging SingleWireRead.
                 // Echo back what you thought the command was.
                 status_buf[1] = input_buf;
@@ -232,8 +234,9 @@ void loop()
     if (!controller.IsAnalogEnabled()) {
         controller.EnableAnalog();
     }
-    else {
+    else if (read_controller) {
         controller.Poll(ps2_buttons);
+        read_controller = false;
     }
 
     if (ps2_buttons.analog_valid) {
